@@ -13,20 +13,24 @@ void picoripheral_pin_forever(PIO pio, uint sm, uint offset, uint pin,
                               uint freq, bool enable);
 
 volatile uint32_t counter;
+uint32_t t0, t1;
 
 void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
   if (gpio == COUNTER) {
     if (event == GPIO_IRQ_EDGE_FALL) {
-      counter++;
+      counter--;
+      if (counter == 0) {
+	pio_sm_set_enabled(pio1, 0, false);
+	t1 = time_us_32();
+	printf("%d\n", t1 - t0);
+      }
     }
   }
   if (gpio == TRIGGER) {
     if (event == GPIO_IRQ_EDGE_RISE) {
       pio_sm_set_enabled(pio1, 0, true);
-      counter = 0;
-    } else {
-      pio_sm_set_enabled(pio1, 0, false);
-      printf("%d\n", counter);
+      counter = 100;
+      t0 = time_us_32();
     }
   }
 }
@@ -46,7 +50,7 @@ int main() {
 
   // fast clock pio
   uint off1 = pio_add_program(pio1, &picoripheral_program);
-  picoripheral_pin_forever(pio1, 0, off1, 14, 20000, false);
+  picoripheral_pin_forever(pio1, 0, off1, 14, 2000, false);
 
   while (true)
     ;
