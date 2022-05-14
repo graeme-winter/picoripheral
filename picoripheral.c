@@ -31,6 +31,9 @@ void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
   }
 }
 
+// FIXME give an API to return this amongst other things
+// clock_get_hz(clk_sys)
+
 int main() {
   setup_default_uart();
 
@@ -41,8 +44,8 @@ int main() {
 
   // bulk clock pio
   uint off0 = pio_add_program(pio0, &picoripheral_program);
-  picoripheral_pin_forever(pio0, 0, off0, 15, 10, true);
-  picoripheral_pin_forever(pio0, 1, off0, 25, 10, true);
+  picoripheral_pin_forever(pio0, 0, off0, 15, 1, true);
+  picoripheral_pin_forever(pio0, 1, off0, 25, 1, true);
 
   // fast clock pio
   uint off1 = pio_add_program(pio1, &picoripheral_program);
@@ -57,5 +60,5 @@ void picoripheral_pin_forever(PIO pio, uint sm, uint offset, uint pin,
   picoripheral_program_init(pio, sm, offset, pin);
   pio_sm_set_enabled(pio, sm, enable);
 
-  pio->txf[sm] = clock_get_hz(clk_sys) / (2 * freq);
+  pio->txf[sm] = (clock_get_hz(clk_sys) / (2 * freq)) - 3;
 }
