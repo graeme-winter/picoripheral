@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+#include "hardware/adc.h"
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
 #include "hardware/pio.h"
@@ -8,15 +9,19 @@
 
 #define TRIGGER 16
 #define COUNTER 17
+#define ADC0 26
 
 void picoripheral_pin_forever(PIO pio, uint sm, uint offset, uint pin,
                               uint freq, bool enable);
 
 volatile uint32_t counter;
+uint16_t data[20000];
 
 void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
   if (gpio == COUNTER) {
     if (event == GPIO_IRQ_EDGE_FALL) {
+      // N.B. this is a 12 bit read
+      data[counter] = adc_read();
       counter++;
     }
   }
@@ -26,7 +31,11 @@ void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
       counter = 0;
     } else {
       pio_sm_set_enabled(pio1, 0, false);
-      printf("%d\n", counter);
+      // compute mean: should not be in IRQ handler ... should update
+      // pointer and reset buffer, or stream out over i2c or similar
+      uint32_t total = 0;
+      for (uint32_t j = 0; j < counter; j++) total += data[j];
+      printf("%d %d\n", counter, total / counter);
     }
   }
 }
@@ -36,6 +45,11 @@ void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
 
 int main() {
   setup_default_uart();
+  adc_init();
+
+  // set up ADC
+  adc_gpio_init(ADC0);
+  adc_select_input(0);
 
   // set up the IRQ
   uint32_t irq_mask = GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL;
@@ -50,6 +64,8 @@ int main() {
   // fast clock pio
   uint off1 = pio_add_program(pio1, &picoripheral_program);
   picoripheral_pin_forever(pio1, 0, off1, 14, 20000, false);
+
+
 
   while (true)
     ;
