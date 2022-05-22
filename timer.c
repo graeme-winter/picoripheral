@@ -12,6 +12,8 @@
 #define CLOCK0 16
 #define CLOCK1 17
 
+#define EXTERNAL 21
+
 void timer(PIO pio, uint sm, uint pin, uint32_t delay, uint32_t high,
            uint32_t low, bool enable);
 
@@ -23,8 +25,17 @@ void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
     if (event == GPIO_IRQ_EDGE_FALL) {
       counter++;
     }
-  }
-  if (gpio == TRIGGER) {
+  } else if (gpio == TRIGGER) {
+    if (event == GPIO_IRQ_EDGE_RISE) {
+      pio_sm_set_enabled(pio1, 0, true);
+      t0 = time_us_64();
+      counter = 0;
+    } else {
+      pio_sm_set_enabled(pio1, 0, false);
+      t1 = time_us_64();
+      printf("%d %ld\n", counter, t1 - t0);
+    }
+  } else if (gpio == EXTERNAL) {
     if (event == GPIO_IRQ_EDGE_RISE) {
       pio_sm_set_enabled(pio1, 0, true);
       t0 = time_us_64();
@@ -46,9 +57,10 @@ int main() {
   uint32_t irq_mask = GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL;
   gpio_set_irq_enabled_with_callback(TRIGGER, irq_mask, true, &callback);
   gpio_set_irq_enabled(COUNTER, irq_mask, true);
+  gpio_set_irq_enabled(EXTERNAL, irq_mask, true);
 
   // bulk clock pio
-  timer(pio0, 0, CLOCK1, 0, freq / 2, freq / 2, true);
+  timer(pio0, 0, CLOCK1, 0, freq / 2, freq / 2, false);
   timer(pio0, 1, 25, 3 * freq, freq / 2, freq / 2, true);
 
   // fast clock - enabled by interrupt
