@@ -60,8 +60,8 @@ int main() {
 }
 
 // with-delay timer program
-void timer_delay(PIO pio, uint sm, uint pin, uint32_t delay, uint32_t high,
-                 uint32_t low, bool enable) {
+void timer(PIO pio, uint sm, uint pin, uint32_t delay, uint32_t high,
+           uint32_t low, bool enable) {
   // if delay, load one program else other
   if (delay == 0) {
     uint offset = pio_add_program(pio, &timer_program);
