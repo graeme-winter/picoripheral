@@ -14,6 +14,7 @@ pico_sdk_init()
 add_executable(picoripheral timer.c)
 
 pico_generate_pio_header(picoripheral ${CMAKE_CURRENT_LIST_DIR}/timer.pio)
+pico_generate_pio_header(picoripheral ${CMAKE_CURRENT_LIST_DIR}/delay.pio)
 
 pico_set_program_name(picoripheral "picoripheral")
 pico_set_program_version(picoripheral "0.1")
