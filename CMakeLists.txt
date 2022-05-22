@@ -11,9 +11,9 @@ project(picoripheral C CXX ASM)
 
 pico_sdk_init()
 
-add_executable(picoripheral picoripheral.c)
+add_executable(picoripheral timer.c)
 
-pico_generate_pio_header(picoripheral ${CMAKE_CURRENT_LIST_DIR}/picoripheral.pio)
+pico_generate_pio_header(picoripheral ${CMAKE_CURRENT_LIST_DIR}/timer.pio)
 
 pico_set_program_name(picoripheral "picoripheral")
 pico_set_program_version(picoripheral "0.1")
@@ -22,9 +22,11 @@ pico_set_program_version(picoripheral "0.1")
 pico_enable_stdio_uart(picoripheral 1)
 pico_enable_stdio_usb(picoripheral 0)
 
+# we using a lot of different hardware here
 target_link_libraries(picoripheral pico_stdlib)
 target_link_libraries(picoripheral hardware_i2c)
-target_link_libraries(picoripheral hardware_adc)
 target_link_libraries(picoripheral hardware_pio)
+# target_link_libraries(picoripheral hardware_adc)
+# target_link_libraries(picoripheral hardware_spi)
 
 pico_add_extra_outputs(picoripheral)
