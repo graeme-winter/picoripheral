@@ -11,8 +11,7 @@
 #define CLOCK0 16
 #define CLOCK1 17
 
-void picoripheral_pin_forever(PIO pio, uint sm, uint offset, uint pin,
-                              uint freq, bool enable);
+void timer_no_delay(PIO pio, uint sm, uint pin, uint32_t high, uint32_t low, bool enable);
 
 volatile uint32_t counter;
 volatile uint64_t t0, t1;
@@ -39,29 +38,43 @@ void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
 int main() {
   setup_default_uart();
 
+  uint32_t freq = clock_get_hz(clk_sys);
+  
   // set up the IRQ
   uint32_t irq_mask = GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL;
   gpio_set_irq_enabled_with_callback(TRIGGER, irq_mask, true, &callback);
   gpio_set_irq_enabled(COUNTER, irq_mask, true);
 
   // bulk clock pio
-  uint off0 = pio_add_program(pio0, &timer_program);
-  picoripheral_pin_forever(pio0, 0, off0, CLOCK1, 1, true);
-  picoripheral_pin_forever(pio0, 1, off0, 25, 1, true);
+  timer_no_delay(pio0, 0, CLOCK1, freq / 2, freq / 2, true);
+  timer_no_delay(pio0, 1, 25, freq / 2, freq / 2, true);
 
   // fast clock pio
-  uint off1 = pio_add_program(pio1, &timer_program);
-  picoripheral_pin_forever(pio1, 0, off1, CLOCK0, 10000, false);
+  timer_no_delay(pio1, 0, CLOCK0, freq / 20000, 9 * freq / 20000, false);
 
   while (true) {
     tight_loop_contents();
   }
 }
 
-void picoripheral_pin_forever(PIO pio, uint sm, uint offset, uint pin,
-                              uint freq, bool enable) {
+// no-delay timer program
+void timer_no_delay(PIO pio, uint sm, uint pin, uint32_t high, uint32_t low, bool enable) {
+  // load program, init, push to registers
+  uint offset = pio_add_program(pio, &timer_program);
   timer_program_init(pio, sm, offset, pin);
-  pio_sm_set_enabled(pio, sm, enable);
 
-  pio->txf[sm] = (clock_get_hz(clk_sys) / (2 * freq)) - 3;
+  // intrinsic delays
+  high -= 3;
+  low -= 3;
+
+  // load low into OSR then copy to ISR
+  pio->txf[sm] = low;
+  pio_sm_exec(pio, sm, pio_encode_pull(false, false));
+  pio_sm_exec(pio, sm, pio_encode_out(pio_isr, 32));
+
+  // load high into OSR
+  pio->txf[sm] = high;
+
+  // optionally enable
+  pio_sm_set_enabled(pio, sm, enable);
 }
