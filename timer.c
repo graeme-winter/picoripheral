@@ -42,12 +42,12 @@ int main() {
 
   // bulk clock pio
   uint off0 = pio_add_program(pio0, &timer_program);
-  picoripheral_pin_forever(pio0, 0, off0, 15, 1, true);
+  picoripheral_pin_forever(pio0, 0, off0, TRIGGER, 1, true);
   picoripheral_pin_forever(pio0, 1, off0, 25, 1, true);
 
   // fast clock pio
   uint off1 = pio_add_program(pio1, &timer_program);
-  picoripheral_pin_forever(pio1, 0, off1, 14, 20000, false);
+  picoripheral_pin_forever(pio1, 0, off1, COUNTER, 20000, false);
 
   while (true) {
     tight_loop_contents();
