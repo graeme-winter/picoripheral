@@ -68,8 +68,8 @@ int main() {
   timer(pio0, 0, CLOCK1, 0, freq / 2, freq / 2, false);
 
   // fast clocks - enabled by interrupt
-  timer(pio1, 0, CLOCK0, 0, freq / 20000, freq / 20000, false);
-  timer(pio1, 1, 25, 0, freq / 200000, freq / 200000, false);
+  timer(pio1, 0, CLOCK0, 0, freq / 200, freq / 200, false);
+  timer(pio1, 1, 25, 0, freq / 2000, freq / 2000, false);
 
   while (true) {
     tight_loop_contents();
