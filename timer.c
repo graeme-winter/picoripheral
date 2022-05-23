@@ -55,6 +55,8 @@ int main() {
   setup_default_uart();
 
   uint32_t freq = clock_get_hz(clk_sys);
+  freq /= 12500;
+  printf("Functional frequency: %d\n", freq);
 
   // set up the IRQ
   uint32_t irq_mask = GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL;
