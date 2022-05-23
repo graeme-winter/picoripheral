@@ -37,11 +37,12 @@ void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
     }
   } else if (gpio == EXTERNAL) {
     if (event == GPIO_IRQ_EDGE_RISE) {
-      pio_sm_set_enabled(pio1, 0, true);
+      pio_enable_sm_mask_in_sync(pio1, 0b11);
       t0 = time_us_64();
       counter = 0;
     } else {
       pio_sm_set_enabled(pio1, 0, false);
+      pio_sm_set_enabled(pio1, 1, false);
       t1 = time_us_64();
       printf("%d %ld\n", counter, t1 - t0);
     }
@@ -59,12 +60,12 @@ int main() {
   gpio_set_irq_enabled(COUNTER, irq_mask, true);
   gpio_set_irq_enabled(EXTERNAL, irq_mask, true);
 
-  // bulk clock pio
+  // internal trigger clock - disabled
   timer(pio0, 0, CLOCK1, 0, freq / 2, freq / 2, false);
-  timer(pio0, 1, 25, 3 * freq, freq / 2, freq / 2, true);
 
-  // fast clock - enabled by interrupt
-  timer(pio1, 0, CLOCK0, 0, freq / 20000, 9 * freq / 20000, false);
+  // fast clocks - enabled by interrupt
+  timer(pio1, 0, CLOCK0, 0, freq / 20000, freq / 20000, false);
+  timer(pio1, 1, 25, 0, freq / 200000, freq / 200000, false);
 
   while (true) {
     tight_loop_contents();
