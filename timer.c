@@ -71,6 +71,7 @@ void timer(PIO pio, uint sm, uint pin, uint32_t delay, uint32_t high,
   } else {
     uint offset = pio_add_program(pio, &delay_program);
     delay_program_init(pio, sm, offset, pin);
+    delay -= 2;
   }
 
   // intrinsic delays - these are certainly 3 cycles
