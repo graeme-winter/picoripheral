@@ -43,6 +43,8 @@ void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
     } else {
       pio_sm_set_enabled(pio1, 0, false);
       pio_sm_set_enabled(pio1, 1, false);
+      pio_sm_exec(pio1, 0, pio_encode_set(pio_pins, 0));
+      pio_sm_exec(pio1, 1, pio_encode_set(pio_pins, 0));
       t1 = time_us_64();
       printf("%d %ld\n", counter, t1 - t0);
     }
