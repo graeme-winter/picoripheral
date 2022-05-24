@@ -35,7 +35,7 @@ void timer(PIO pio, uint sm, uint pin, uint32_t delay, uint32_t high,
 
 // sm program offsets and program pointer
 uint32_t offsets[2];
-pio_program_t *programs[2];
+const pio_program_t *programs[2];
 
 // arm and disarm functions
 void arm();
