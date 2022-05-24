@@ -33,7 +33,7 @@ trigger()
 time.sleep(12)
 
 # arm device
-reader = struct.pack("IIII", 0, 10, 99, 100000)
+reader = struct.pack("IIII", 0, 1, 99, 100000)
 driver = struct.pack("IIII", 0, 500, 500, 0)
 
 bus.write_i2c_block_data(ADDRESS, 0x10, list(reader))
