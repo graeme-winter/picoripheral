@@ -8,10 +8,12 @@ from RPi import GPIO
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(16, GPIO.OUT)
 
+
 def trigger():
-  GPIO.output(16, GPIO.HIGH)
-  time.sleep(0.01)
-  GPIO.output(16, GPIO.LOW)
+    GPIO.output(16, GPIO.HIGH)
+    time.sleep(0.01)
+    GPIO.output(16, GPIO.LOW)
+
 
 ADDRESS = 0x42
 

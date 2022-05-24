@@ -33,6 +33,10 @@
 void timer(PIO pio, uint sm, uint pin, uint32_t delay, uint32_t high,
            uint32_t low, bool enable);
 
+// sm program offsets and program pointer
+uint32_t offsets[2];
+pio_program_t *programs[2];
+
 // arm and disarm functions
 void arm();
 void disarm();
@@ -152,6 +156,9 @@ void arm() {
 }
 
 void disarm() {
+  // remove programs from PIO blocks - we have two because two state machines
+  pio_remove_program(pio1, programs[0], offsets[0]);
+  pio_remove_program(pio1, programs[1], offsets[1]);
   printf("Disarm\n");
 }
 
@@ -161,13 +168,15 @@ void timer(PIO pio, uint sm, uint pin, uint32_t delay, uint32_t high,
   // if delay, load one program else other
   // set clock divider to give ~ 1µs / tick (i.e. /= 125)
   if (delay == 0) {
-    uint offset = pio_add_program(pio, &timer_program);
-    timer_program_init(pio, sm, offset, pin, 125);
+    programs[sm] = &timer_program;
+    offsets[sm] = pio_add_program(pio, &timer_program);
+    timer_program_init(pio, sm, offsets[sm], pin, 125);
     // intrinsic delays - I _think_ the delay on 1st cycle is 2 not 3
     delay -= 2;
   } else {
-    uint offset = pio_add_program(pio, &delay_program);
-    delay_program_init(pio, sm, offset, pin, 125);
+    programs[sm] = &delay_program;
+    offsets[sm] = pio_add_program(pio, &delay_program);
+    delay_program_init(pio, sm, offsets[sm], pin, 125);
     delay -= 2;
   }
 
