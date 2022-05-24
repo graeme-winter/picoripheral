@@ -63,9 +63,9 @@ void i2c0_handler() {
       if (command == 0xff) {
         arm();
       } else if (command == 0x10) {
-        offset = 0;
-      } else if (command == 0x11) {
         offset = 0x10;
+      } else if (command == 0x11) {
+        offset = 0x0;
       }
     } else {
       driver_reader_bytes[offset++] = (uint8_t)(value & I2C_IC_DATA_CMD_BITS);
@@ -81,7 +81,6 @@ void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
       if (counter == counts) {
         pio_sm_set_enabled(pio1, 0, false);
         pio_sm_set_enabled(pio1, 1, false);
-        // free up state machines again? move to disarm function
         disarm();
         t1 = time_us_64();
         gpio_put(LED, false);
@@ -129,8 +128,7 @@ int main() {
 
   // set up the IRQ
   uint32_t irq_mask = GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL;
-  gpio_set_irq_enabled_with_callback(DRIVER, irq_mask, true, &callback);
-  gpio_set_irq_enabled(COUNTER, irq_mask, true);
+  gpio_set_irq_enabled_with_callback(COUNTER, irq_mask, true, &callback);
   gpio_set_irq_enabled(EXTERNAL, irq_mask, true);
 
   while (true) {
@@ -139,6 +137,10 @@ int main() {
 }
 
 void arm() {
+  // debug info
+  printf("D: %d %d %d %d\n", driver[0], driver[1], driver[2], driver[3]);
+  printf("R: %d %d %d %d\n", reader[0], reader[1], reader[2], reader[3]);
+
   // driver clock
   timer(pio1, 1, CLOCK1, driver[0], driver[1], driver[2], false);
 
@@ -150,9 +152,7 @@ void arm() {
 }
 
 void disarm() {
-  // release the state machines
-  pio_sm_unclaim(pio1, 1);
-  pio_sm_unclaim(pio1, 0);
+  printf("Disarm\n");
 }
 
 // with-delay timer program
