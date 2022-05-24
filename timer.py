@@ -21,7 +21,7 @@ bus = smbus.SMBus(1)
 
 # arm device
 reader = struct.pack("IIII", 0, 5000, 5000, 100)
-driver = struct.pack("IIII", 25000, 50000, 50000, 0)
+driver = struct.pack("IIII", 50000, 100000, 100000, 0)
 
 bus.write_i2c_block_data(ADDRESS, 0x10, list(reader))
 bus.write_i2c_block_data(ADDRESS, 0x11, list(driver))

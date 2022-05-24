@@ -51,8 +51,8 @@ uint32_t driver_reader[8];
 uint32_t *driver = driver_reader;
 uint32_t *reader = driver_reader + 4;
 
-// stored data array - 60000 points is enough for a minute at 1kHz
-uint16_t data[60000];
+// stored data array - 10000 points is enough for 10s at 1kHz
+uint16_t data[10000];
 
 // i2c helpers
 uint8_t *driver_reader_bytes = (uint8_t *)driver_reader;
@@ -127,8 +127,12 @@ int main() {
   irq_set_enabled(I2C0_IRQ, true);
 
   // adc
+  adc_init();
   adc_gpio_init(ADC0);
   adc_select_input(0);
+
+
+  printf("%d\n", adc_read());
 
   // led
   gpio_init(LED);
@@ -170,7 +174,7 @@ void disarm() {
   pio_remove_program(pio1, programs[0], offsets[0]);
   pio_remove_program(pio1, programs[1], offsets[1]);
   printf("Disarm\n");
-  for (int j = 0; j < counts; j++) {
+  for (int j = 0; j < counter; j++) {
     printf("%d\n", data[j]);
   }
 }
