@@ -34,8 +34,8 @@ void timer(PIO pio, uint sm, uint pin, uint32_t delay, uint32_t high,
            uint32_t low, bool enable);
 
 // arm and disarm functions
-// void arm();
-// void disarm();
+void arm();
+void disarm();
 
 volatile uint32_t counter, counts;
 volatile uint64_t t0, t1;
@@ -61,9 +61,7 @@ void i2c0_handler() {
     if (value & I2C_IC_DATA_CMD_FIRST_DATA_BYTE_BITS) {
       command = (uint8_t)(value & I2C_IC_DATA_CMD_BITS);
       if (command == 0xff) {
-        // arm
-        printf("D: %d %d %d %d\n", driver[0], driver[1], driver[2], driver[3]);
-        printf("R: %d %d %d %d\n", reader[0], reader[1], reader[2], reader[3]);
+        arm();
       } else if (command == 0x10) {
         offset = 0;
       } else if (command == 0x11) {
@@ -84,6 +82,7 @@ void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
         pio_sm_set_enabled(pio1, 0, false);
         pio_sm_set_enabled(pio1, 1, false);
         // free up state machines again? move to disarm function
+        disarm();
         t1 = time_us_64();
         gpio_put(LED, false);
         printf("%d %ld\n", counter, t1 - t0);
@@ -134,14 +133,26 @@ int main() {
   gpio_set_irq_enabled(COUNTER, irq_mask, true);
   gpio_set_irq_enabled(EXTERNAL, irq_mask, true);
 
-  // fast clocks - enabled by interrupt
-  counts = 1000;
-  timer(pio1, 0, CLOCK0, 0, 100, 900, false);
-  timer(pio1, 1, CLOCK1, 5, 100, 9900, false);
-
   while (true) {
     tight_loop_contents();
   }
+}
+
+void arm() {
+  // driver clock
+  timer(pio1, 1, CLOCK1, driver[0], driver[1], driver[2], false);
+
+  // reader clock
+  counts = reader[3];
+  timer(pio1, 0, CLOCK0, reader[0], reader[1], reader[2], false);
+
+  // TBD do I want to set up the interrupts in here?
+}
+
+void disarm() {
+  // release the state machines
+  pio_sm_unclaim(pio1, 1);
+  pio_sm_unclaim(pio1, 0);
 }
 
 // with-delay timer program
