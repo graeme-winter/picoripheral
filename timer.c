@@ -1,25 +1,76 @@
 #include <stdio.h>
 
-#include "delay.pio.h"
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
+#include "hardware/i2c.h"
+#include "hardware/irq.h"
 #include "hardware/pio.h"
 #include "pico/stdlib.h"
+
+#include "delay.pio.h"
 #include "timer.pio.h"
 
+// GPIO assignments
 #define DRIVER 14
 #define COUNTER 15
 #define CLOCK0 16
 #define CLOCK1 17
-
 #define EXTERNAL 21
 
+// static definitions
+#define I2C_ADDR 0x42
+
+#define REG_READ 0x10
+#define REG_DRV 0x11
+#define REG_ARM 0xff
+
+// internal timer setup function
 void timer(PIO pio, uint sm, uint pin, uint32_t delay, uint32_t high,
            uint32_t low, bool enable);
+
+// arm and disarm functions
+void arm();
+void disarm();
 
 volatile uint32_t counter, counts;
 volatile uint64_t t0, t1;
 
+// data registers - 4 uint32_t for driver then reader
+uint32_t driver_reader[8];
+uint32_t driver = driver_reader;
+uint32_t reader = driver_reader + 4;
+
+// i2c helpers
+uint8_t* driver_reader_bytes = (uint8_t *) driver_reader_registers;
+uint32_t offset, command;
+
+// i2c handler
+void i2c_handler() {
+  uint32_t status = i2c0_hw->intr_stat;
+  uint32_t value;
+
+  // write request
+  if (status & I2C_IC_INTR_STAT_R_RX_FULL_BITS) {
+    value = i2c0_hw->data_cmd;
+
+    if (value & I2C_IC_DATA_CMD_FIRST_DATA_BYTE_BITS) {
+      command = (uint8_t)(value & I2C_IC_DATA_CMD_BITS);
+      if (command == 0xff) {
+	// arm
+	printf("Driver: %d %d %d %d\n", driver[0], driver[1], driver[2], driver[3]);
+	printf("Reader: %d %d %d %d\n", reader[0], reader[1], reader[2], reader[3]);
+      } else if (command == 0x10) {
+	offset = 0;
+      } else if (command == 0x11) {
+	offset = 0x10;
+      }
+    } else {
+      driver_reader_bytes[offset++] = (uint8_t)(value & I2C_IC_DATA_CMD_BITS);
+    }
+  }  
+}
+
+// GPIO IRQ callback
 void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
   if (gpio == COUNTER) {
     if (event == GPIO_IRQ_EDGE_FALL) {
@@ -27,6 +78,7 @@ void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
       if (counter == counts) {
         pio_sm_set_enabled(pio1, 0, false);
         pio_sm_set_enabled(pio1, 1, false);
+	// free up state machines again? move to disarm function
         t1 = time_us_64();
         printf("%d %ld\n", counter, t1 - t0);
       }
@@ -34,7 +86,6 @@ void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
   } else if (gpio == EXTERNAL) {
     // trigger counters
     if (event == GPIO_IRQ_EDGE_RISE) {
-      printf("Go!\n");
       counter = 0;
       t0 = time_us_64();
       pio_enable_sm_mask_in_sync(pio1, 0b11);
@@ -45,7 +96,23 @@ void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
 int main() {
   setup_default_uart();
 
+  i2c_init(i2c0, 100e3);
+  i2c_set_slave_mode(i2c0, true, I2C0_SLAVE_ADDR);
+
+  gpio_set_function(GPIO_SDA0, GPIO_FUNC_I2C);
+  gpio_set_function(GPIO_SCK0, GPIO_FUNC_I2C);
+  gpio_pull_up(GPIO_SDA0);
+  gpio_pull_up(GPIO_SCK0);
+
+  i2c0_hw->intr_mask =
+      I2C_IC_INTR_MASK_M_RD_REQ_BITS | I2C_IC_INTR_MASK_M_RX_FULL_BITS;
+
+  irq_set_exclusive_handler(I2C0_IRQ, i2c0_handler);
+  irq_set_enabled(I2C0_IRQ, true);
+
+
   uint32_t freq = clock_get_hz(clk_sys);
+
   freq /= 125;
   printf("Functional frequency: %d\n", freq);
 
