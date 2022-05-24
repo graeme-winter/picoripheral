@@ -7,7 +7,7 @@
 #include "pico/stdlib.h"
 #include "timer.pio.h"
 
-#define TRIGGER 14
+#define DRIVER 14
 #define COUNTER 15
 #define CLOCK0 16
 #define CLOCK1 17
@@ -17,21 +17,25 @@
 void timer(PIO pio, uint sm, uint pin, uint32_t delay, uint32_t high,
            uint32_t low, bool enable);
 
-volatile uint32_t counter;
+volatile uint32_t counter, counts;
 volatile uint64_t t0, t1;
 
 void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
   if (gpio == COUNTER) {
     if (event == GPIO_IRQ_EDGE_FALL) {
-      t0 = time_us_64();
-    }
-  } else if (gpio == TRIGGER) {
-    if (event == GPIO_IRQ_EDGE_FALL) {
-      t1 = time_us_64();
-      printf("%d %ld\n", counter, t1 - t0);
+      counter ++;
+      if (counter == counts) {
+        pio_sm_set_enabled(pio1, 0, false);
+        pio_sm_set_enabled(pio1, 1, false);
+        t1 = time_us_64();
+        printf("%d %ld\n", counter, t1 - t0);
+      }
     }
   } else if (gpio == EXTERNAL) {
+    // trigger counters
     if (event == GPIO_IRQ_EDGE_RISE) {
+      counts = 0;
+      t0 = time_us_64();
       pio_enable_sm_mask_in_sync(pio1, 0b11);
     }
   }
@@ -46,12 +50,13 @@ int main() {
 
   // set up the IRQ
   uint32_t irq_mask = GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL;
-  gpio_set_irq_enabled_with_callback(TRIGGER, irq_mask, true, &callback);
+  gpio_set_irq_enabled_with_callback(DRIVER, irq_mask, true, &callback);
   gpio_set_irq_enabled(COUNTER, irq_mask, true);
   gpio_set_irq_enabled(EXTERNAL, irq_mask, true);
 
   // fast clocks - enabled by interrupt
-  timer(pio1, 0, CLOCK0, 0, 100, 9900, false);
+  counts = 1000;
+  timer(pio1, 0, CLOCK0, 0, 100, 900, false);
   timer(pio1, 1, CLOCK1, 5, 100, 9900, false);
 
   while (true) {
@@ -63,14 +68,15 @@ int main() {
 void timer(PIO pio, uint sm, uint pin, uint32_t delay, uint32_t high,
            uint32_t low, bool enable) {
   // if delay, load one program else other
+  // set clock divider to give ~ 1µs / tick (i.e. /= 125)
   if (delay == 0) {
     uint offset = pio_add_program(pio, &timer_program);
-    timer_program_init(pio, sm, offset, pin);
+    timer_program_init(pio, sm, offset, pin, 125);
     // intrinsic delays - I _think_ the delay on 1st cycle is 2 not 3
     delay -= 2;
   } else {
     uint offset = pio_add_program(pio, &delay_program);
-    delay_program_init(pio, sm, offset, pin);
+    delay_program_init(pio, sm, offset, pin, 125);
     delay -= 2;
   }
 
