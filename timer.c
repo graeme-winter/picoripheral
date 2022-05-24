@@ -34,7 +34,8 @@ void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
   } else if (gpio == EXTERNAL) {
     // trigger counters
     if (event == GPIO_IRQ_EDGE_RISE) {
-      counts = 0;
+      printf("Go!\n");
+      counter = 0;
       t0 = time_us_64();
       pio_enable_sm_mask_in_sync(pio1, 0b11);
     }
@@ -45,7 +46,7 @@ int main() {
   setup_default_uart();
 
   uint32_t freq = clock_get_hz(clk_sys);
-  freq /= 12500;
+  freq /= 125;
   printf("Functional frequency: %d\n", freq);
 
   // set up the IRQ
