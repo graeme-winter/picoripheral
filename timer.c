@@ -127,7 +127,7 @@ int main() {
 
   uint32_t freq = clock_get_hz(clk_sys);
 
-  freq /= 125;
+  freq /= 25;
   printf("Functional frequency: %d\n", freq);
 
   // set up the IRQ
@@ -166,17 +166,20 @@ void disarm() {
 void timer(PIO pio, uint sm, uint pin, uint32_t delay, uint32_t high,
            uint32_t low, bool enable) {
   // if delay, load one program else other
-  // set clock divider to give ~ 1µs / tick (i.e. /= 125)
+  // set clock divider to give ~ 0.2µs / tick (i.e. /= 25)
+  delay *= 5;
+  high *= 5;
+  low *= 5;
   if (delay == 0) {
     programs[sm] = &timer_program;
     offsets[sm] = pio_add_program(pio, &timer_program);
-    timer_program_init(pio, sm, offsets[sm], pin, 125);
+    timer_program_init(pio, sm, offsets[sm], pin, 25);
     // intrinsic delays - I _think_ the delay on 1st cycle is 2 not 3
     delay -= 2;
   } else {
     programs[sm] = &delay_program;
     offsets[sm] = pio_add_program(pio, &delay_program);
-    delay_program_init(pio, sm, offsets[sm], pin, 125);
+    delay_program_init(pio, sm, offsets[sm], pin, 25);
     delay -= 2;
   }
 
