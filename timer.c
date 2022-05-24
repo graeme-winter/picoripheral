@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+#include "hardware/adc.h"
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
 #include "hardware/i2c.h"
@@ -18,6 +19,7 @@
 #define EXTERNAL 21
 
 #define LED 25
+#define ADC0 26
 
 #define GPIO_SDA0 4
 #define GPIO_SCK0 5
@@ -48,6 +50,9 @@ volatile uint64_t t0, t1;
 uint32_t driver_reader[8];
 uint32_t *driver = driver_reader;
 uint32_t *reader = driver_reader + 4;
+
+// stored data array - 60000 points is enough for a minute at 1kHz
+uint16_t data[60000];
 
 // i2c helpers
 uint8_t *driver_reader_bytes = (uint8_t *)driver_reader;
@@ -81,6 +86,7 @@ void i2c0_handler() {
 void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
   if (gpio == COUNTER) {
     if (event == GPIO_IRQ_EDGE_FALL) {
+      data[counter] = adc_read();
       counter++;
       if (counter == counts) {
         pio_sm_set_enabled(pio1, 0, false);
@@ -119,6 +125,10 @@ int main() {
 
   irq_set_exclusive_handler(I2C0_IRQ, i2c0_handler);
   irq_set_enabled(I2C0_IRQ, true);
+
+  // adc
+  adc_gpio_init(ADC0);
+  adc_select_input(0);
 
   // led
   gpio_init(LED);
@@ -160,6 +170,9 @@ void disarm() {
   pio_remove_program(pio1, programs[0], offsets[0]);
   pio_remove_program(pio1, programs[1], offsets[1]);
   printf("Disarm\n");
+  for (int j = 0; j < counts; j++) {
+    printf("%d\n", data[j]);
+  }
 }
 
 // with-delay timer program
