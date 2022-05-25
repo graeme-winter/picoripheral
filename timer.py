@@ -36,9 +36,9 @@ ADDRESS = 0x42
 
 bus = smbus.SMBus(1)
 
-points = 100
-high = 5000
-low = 5000
+points = 10000
+high = 50
+low = 50
 
 # arm device
 reader = struct.pack("IIII", 0, high, low, points)
@@ -54,4 +54,7 @@ trigger()
 time.sleep(2)
 GPIO.cleanup()
 
-print(fetch(points))
+result = fetch(points)
+
+for j, r in enumerate(result):
+    print(j * (high + low) + high, r)
