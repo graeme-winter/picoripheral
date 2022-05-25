@@ -151,7 +151,7 @@ int main() {
 
   freq /= 25;
   printf("Functional frequency: %d\n", freq);
-  
+
   // set up the IRQ
   uint32_t irq_mask = GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL;
   gpio_set_irq_enabled_with_callback(COUNTER, irq_mask, true, &callback);

@@ -18,7 +18,7 @@ def fetch(nn):
     spi.max_speed_hz = 10000000
 
     zero = [0 for j in range(2 * nn)]
-    
+
     data = bytearray(spi.xfer3(zero))
 
     # unpack uint16_t
