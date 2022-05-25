@@ -132,9 +132,6 @@ int main() {
   adc_gpio_init(ADC0);
   adc_select_input(0);
 
-
-  printf("%d\n", adc_read());
-
   // led
   gpio_init(LED);
   gpio_set_dir(LED, GPIO_OUT);
@@ -143,7 +140,7 @@ int main() {
   // spi - at demand of 10 MHz
   spi_inst_t *spi = spi1;
   uint32_t baud = spi_init(spi, 10000000);
-  spi_set_format(spix, 8, 1, 1, SPI_MSB_FIRST);
+  spi_set_format(spi, 8, 1, 1, SPI_MSB_FIRST);
   gpio_set_function(10, GPIO_FUNC_SPI);
   gpio_set_function(11, GPIO_FUNC_SPI);
   gpio_set_function(12, GPIO_FUNC_SPI);
@@ -155,14 +152,14 @@ int main() {
 
   freq /= 25;
   printf("Functional frequency: %d\n", freq);
-
+  
   // set up the IRQ
   uint32_t irq_mask = GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL;
   gpio_set_irq_enabled_with_callback(COUNTER, irq_mask, true, &callback);
   gpio_set_irq_enabled(EXTERNAL, irq_mask, true);
 
   while (true) {
-    if (counter != counts)
+    if (counter != counts || counts == 0)
       continue;
     // transmit content of buffer up SPI link - writing nonsense back into
     // buffer as we go...
@@ -193,9 +190,6 @@ void disarm() {
   pio_remove_program(pio1, programs[0], offsets[0]);
   pio_remove_program(pio1, programs[1], offsets[1]);
   printf("Disarm\n");
-  for (int j = 0; j < counter; j++) {
-    printf("%d\n", data[j]);
-  }
 }
 
 // with-delay timer program

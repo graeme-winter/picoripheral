@@ -4,9 +4,26 @@ import struct
 import time
 
 from RPi import GPIO
+import spidev
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(16, GPIO.OUT)
+
+
+def fetch(nn):
+    spi = spidev.SpiDev()
+    spi.open(0, 0)
+    spi.mode = 3
+    spi.bits_per_word = 8
+    spi.max_speed_hz = 10000000
+
+    zero = [0 for j in range(2 * nn)]
+    
+    data = bytearray(spi.xfer3(zero))
+
+    # unpack uint16_t
+
+    return struct.unpack(f"{nn}H", data)
 
 
 def trigger():
@@ -19,8 +36,12 @@ ADDRESS = 0x42
 
 bus = smbus.SMBus(1)
 
+points = 100
+high = 5000
+low = 5000
+
 # arm device
-reader = struct.pack("IIII", 0, 5000, 5000, 100)
+reader = struct.pack("IIII", 0, high, low, points)
 driver = struct.pack("IIII", 50000, 100000, 100000, 0)
 
 bus.write_i2c_block_data(ADDRESS, 0x10, list(reader))
@@ -32,3 +53,5 @@ trigger()
 
 time.sleep(2)
 GPIO.cleanup()
+
+print(fetch(points))
