@@ -6,6 +6,7 @@
 #include "hardware/i2c.h"
 #include "hardware/irq.h"
 #include "hardware/pio.h"
+#include "hardware/spi.h"
 #include "pico/stdlib.h"
 
 #include "delay.pio.h"
@@ -139,6 +140,17 @@ int main() {
   gpio_set_dir(LED, GPIO_OUT);
   gpio_put(LED, false);
 
+  // spi - at demand of 10 MHz
+  spi_inst_t *spi = spi1;
+  uint32_t baud = spi_init(spi, 10000000);
+  spi_set_format(spix, 8, 1, 1, SPI_MSB_FIRST);
+  gpio_set_function(10, GPIO_FUNC_SPI);
+  gpio_set_function(11, GPIO_FUNC_SPI);
+  gpio_set_function(12, GPIO_FUNC_SPI);
+  gpio_set_function(13, GPIO_FUNC_SPI);
+  spi_set_slave(spi, true);
+  printf("Initialised SPI at %d\n", baud);
+
   uint32_t freq = clock_get_hz(clk_sys);
 
   freq /= 25;
@@ -150,7 +162,14 @@ int main() {
   gpio_set_irq_enabled(EXTERNAL, irq_mask, true);
 
   while (true) {
-    tight_loop_contents();
+    if (counter != counts)
+      continue;
+    // transmit content of buffer up SPI link - writing nonsense back into
+    // buffer as we go...
+    uint8_t *buffer = (uint8_t *)data;
+    int transmit = spi_write_read_blocking(spi, buffer, buffer, 2 * counts);
+    counter = 0;
+    printf("Sent %d bytes\n", transmit);
   }
 }
 

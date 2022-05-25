@@ -28,6 +28,6 @@ target_link_libraries(picoripheral pico_stdlib)
 target_link_libraries(picoripheral hardware_i2c)
 target_link_libraries(picoripheral hardware_pio)
 target_link_libraries(picoripheral hardware_adc)
-# target_link_libraries(picoripheral hardware_spi)
+target_link_libraries(picoripheral hardware_spi)
 
 pico_add_extra_outputs(picoripheral)
