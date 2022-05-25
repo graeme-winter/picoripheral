@@ -1,23 +1,25 @@
 #include <stdio.h>
 
+#include "hardware/adc.h"
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
 #include "hardware/i2c.h"
 #include "hardware/irq.h"
 #include "hardware/pio.h"
+#include "hardware/spi.h"
 #include "pico/stdlib.h"
 
 #include "delay.pio.h"
 #include "timer.pio.h"
 
 // GPIO assignments
-#define DRIVER 14
+#define EXTERNAL 14
 #define COUNTER 15
 #define CLOCK0 16
 #define CLOCK1 17
-#define EXTERNAL 21
 
 #define LED 25
+#define ADC0 26
 
 #define GPIO_SDA0 4
 #define GPIO_SCK0 5
@@ -48,6 +50,9 @@ volatile uint64_t t0, t1;
 uint32_t driver_reader[8];
 uint32_t *driver = driver_reader;
 uint32_t *reader = driver_reader + 4;
+
+// stored data array - 10000 points is enough for 60s at 1kHz
+uint16_t data[60000];
 
 // i2c helpers
 uint8_t *driver_reader_bytes = (uint8_t *)driver_reader;
@@ -81,6 +86,7 @@ void i2c0_handler() {
 void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
   if (gpio == COUNTER) {
     if (event == GPIO_IRQ_EDGE_FALL) {
+      data[counter] = adc_read();
       counter++;
       if (counter == counts) {
         pio_sm_set_enabled(pio1, 0, false);
@@ -120,23 +126,46 @@ int main() {
   irq_set_exclusive_handler(I2C0_IRQ, i2c0_handler);
   irq_set_enabled(I2C0_IRQ, true);
 
+  // adc
+  adc_init();
+  adc_gpio_init(ADC0);
+  adc_select_input(0);
+
   // led
   gpio_init(LED);
   gpio_set_dir(LED, GPIO_OUT);
   gpio_put(LED, false);
 
+  // spi - at demand of 10 MHz
+  spi_inst_t *spi = spi1;
+  uint32_t baud = spi_init(spi, 10000000);
+  spi_set_format(spi, 8, 1, 1, SPI_MSB_FIRST);
+  gpio_set_function(10, GPIO_FUNC_SPI);
+  gpio_set_function(11, GPIO_FUNC_SPI);
+  gpio_set_function(12, GPIO_FUNC_SPI);
+  gpio_set_function(13, GPIO_FUNC_SPI);
+  spi_set_slave(spi, true);
+  printf("Initialised SPI at %d\n", baud);
+
   uint32_t freq = clock_get_hz(clk_sys);
 
   freq /= 25;
   printf("Functional frequency: %d\n", freq);
-
+  
   // set up the IRQ
   uint32_t irq_mask = GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL;
   gpio_set_irq_enabled_with_callback(COUNTER, irq_mask, true, &callback);
   gpio_set_irq_enabled(EXTERNAL, irq_mask, true);
 
   while (true) {
-    tight_loop_contents();
+    if (counter != counts || counts == 0)
+      continue;
+    // transmit content of buffer up SPI link - writing nonsense back into
+    // buffer as we go...
+    uint8_t *buffer = (uint8_t *)data;
+    int transmit = spi_write_read_blocking(spi, buffer, buffer, 2 * counts);
+    counter = 0;
+    printf("Sent %d bytes\n", transmit);
   }
 }
 
