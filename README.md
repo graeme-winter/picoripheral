@@ -11,7 +11,11 @@ The picoripheral answers the question of reading ADC data at a reliable clock (e
  - 3.3v trigger over GPIO
  - data egress via spi
 
-The simplest application is to monitor the voltage across an RC circuit, driven by the driver clock then reading the voltage across the capacitor. TODO put in fritzing diagram for this. The Python code running on the Raspberry Pi then looks like:
+The simplest application is to monitor the voltage across an RC circuit, driven by the driver clock then reading the voltage across the capacitor.
+
+![Wiring diagram](./wiring.png)
+
+The Python code running on the Raspberry Pi then looks like:
 
 ```python
 import random
