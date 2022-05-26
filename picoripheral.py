@@ -6,7 +6,7 @@ from RPi import GPIO
 import spidev
 
 
-class picoripheral:
+class Picoripheral:
     def __init__(self):
         # connectivity
         self._i2c_address = 0x42
@@ -54,6 +54,10 @@ class picoripheral:
         spi.close()
 
         return struct.unpack(f"{self._scan[3]}H", data)
+
+    def time(self):
+        delay, high, low, points = self._scan
+        return [high + delay + j * (high + low) for j in range(points)]
 
     def __del__(self):
         GPIO.cleanup()
