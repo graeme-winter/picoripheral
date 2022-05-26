@@ -19,12 +19,12 @@ class Picoripheral:
         # scan data
         self._scan = (0, 0, 0, 0)
 
-    def set_reader(self, delay, high, low, points):
+    def probe(self, delay, high, low, points):
         self._scan = (delay, high, low, points)
         message = list(struct.pack("IIII", delay, high, low, points))
         self._smbus.write_i2c_block_data(self._i2c_address, 0x10, message)
 
-    def set_driver(self, delay, high, low, points):
+    def drive(self, delay, high, low, points):
         message = list(struct.pack("IIII", delay, high, low, points))
         self._smbus.write_i2c_block_data(self._i2c_address, 0x11, message)
 
