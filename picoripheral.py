@@ -21,15 +21,15 @@ class Picoripheral:
 
     def set_reader(self, delay, high, low, points):
         self._scan = (delay, high, low, points)
-        message = struct.pack("IIII", delay, high, low, points)
+        message = list(struct.pack("IIII", delay, high, low, points))
         self._smbus.write_i2c_block_data(self._i2c_address, 0x10, message)
 
     def set_driver(self, delay, high, low, points):
-        message = struct.pack("IIII", delay, high, low, points)
+        message = list(struct.pack("IIII", delay, high, low, points))
         self._smbus.write_i2c_block_data(self._i2c_address, 0x11, message)
 
     def arm(self):
-        self._bus.write_i2c_block_data(self._i2c_address, 0xFF, [])
+        self._smbus.write_i2c_block_data(self._i2c_address, 0xFF, [])
 
     def trigger(self):
         GPIO.output(16, GPIO.HIGH)
