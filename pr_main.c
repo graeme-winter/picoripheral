@@ -46,13 +46,15 @@ void disarm();
 volatile uint32_t counter, counts;
 volatile uint64_t t0, t1;
 
+volatile uint16_t readout;
+
 // data registers - 4 uint32_t for driver then reader
 uint32_t driver_reader[8];
 uint32_t *driver = driver_reader;
 uint32_t *reader = driver_reader + 4;
 
-// stored data array - 10000 points is enough for 60s at 1kHz
-uint16_t data[60000];
+// stored data array - 100000 points is enough for 100s at 1kHz
+uint16_t data[100000];
 
 // i2c helpers
 uint8_t *driver_reader_bytes = (uint8_t *)driver_reader;
