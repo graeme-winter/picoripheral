@@ -11,7 +11,7 @@ project(picoripheral C CXX ASM)
 
 pico_sdk_init()
 
-add_executable(picoripheral timer.c)
+add_executable(picoripheral pr_main.c)
 
 pico_generate_pio_header(picoripheral ${CMAKE_CURRENT_LIST_DIR}/timer.pio)
 pico_generate_pio_header(picoripheral ${CMAKE_CURRENT_LIST_DIR}/delay.pio)
