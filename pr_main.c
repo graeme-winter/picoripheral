@@ -5,6 +5,7 @@
 #include "hardware/gpio.h"
 #include "hardware/i2c.h"
 #include "hardware/irq.h"
+#include "pico/multicore.h"
 #include "hardware/pio.h"
 #include "hardware/spi.h"
 #include "pico/stdlib.h"
@@ -110,6 +111,19 @@ void __not_in_flash_func(callback)(uint gpio, uint32_t event) {
   }
 }
 
+void launch_gpio_irq() {
+    // set up the IRQ
+  uint32_t rise = GPIO_IRQ_EDGE_RISE;
+  uint32_t fall = GPIO_IRQ_EDGE_FALL;
+  gpio_set_irq_enabled_with_callback(COUNTER, fall, true, &callback);
+  gpio_set_irq_enabled(EXTERNAL, rise, true);
+
+  // keep the CPU alive
+  while (true) {
+    tight_loop_contents();
+  }
+}
+
 int main() {
   setup_default_uart();
 
@@ -154,10 +168,8 @@ int main() {
   freq /= 25;
   printf("Functional frequency: %d\n", freq);
 
-  // set up the IRQ
-  uint32_t irq_mask = GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL;
-  gpio_set_irq_enabled_with_callback(COUNTER, irq_mask, true, &callback);
-  gpio_set_irq_enabled(EXTERNAL, irq_mask, true);
+  // IRQ on core1
+  multicore_launch_core1(launch_gpio_irq);
 
   while (true) {
     if (counter != counts || counts == 0)
